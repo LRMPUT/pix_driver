@@ -11,7 +11,7 @@
   <depend>pix_hooke_driver_msgs</depend>
   <depend>rclcpp</depend>
   <depend>std_msgs</depend>
-  <depend>autoware_auto_vehicle_msgs</depend>
+  <depend>autoware_vehicle_msgs</depend>
   <depend>tier4_vehicle_msgs</depend>
   <depend>tier4_api_msgs</depend>
   <depend>autoware_adapi_v1_msgs</depend>

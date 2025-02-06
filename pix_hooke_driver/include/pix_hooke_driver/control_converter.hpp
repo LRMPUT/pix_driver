@@ -20,8 +20,8 @@
 //ros
 #include <rclcpp/rclcpp.hpp>
 // autoware
-#include <autoware_auto_vehicle_msgs/msg/gear_command.hpp>
-#include <autoware_auto_vehicle_msgs/srv/control_mode_command.hpp>
+#include <autoware_vehicle_msgs/msg/gear_command.hpp>
+#include <autoware_vehicle_msgs/srv/control_mode_command.hpp>
 #include <tier4_vehicle_msgs/msg/actuation_command_stamped.hpp>
 #include <autoware_adapi_v1_msgs/msg/operation_mode_state.hpp>
 // pix control
@@ -94,7 +94,7 @@ private:
 
   // shared msgs
   V2aDriveStaFb::ConstSharedPtr drive_sta_fb_ptr_;
-  autoware_auto_vehicle_msgs::msg::GearCommand::ConstSharedPtr gear_command_ptr_;
+  autoware_vehicle_msgs::msg::GearCommand::ConstSharedPtr gear_command_ptr_;
   tier4_vehicle_msgs::msg::ActuationCommandStamped::ConstSharedPtr actuation_command_ptr_;
   autoware_adapi_v1_msgs::msg::OperationModeState::ConstSharedPtr operation_mode_ptr_;
 
@@ -106,7 +106,7 @@ private:
   // subscribers
   rclcpp::Subscription<tier4_vehicle_msgs::msg::ActuationCommandStamped>::ConstSharedPtr
     actuation_command_sub_;
-  rclcpp::Subscription<autoware_auto_vehicle_msgs::msg::GearCommand>::ConstSharedPtr
+  rclcpp::Subscription<autoware_vehicle_msgs::msg::GearCommand>::ConstSharedPtr
     gear_command_sub_;
   rclcpp::Subscription<pix_hooke_driver_msgs::msg::V2aDriveStaFb>::ConstSharedPtr
     drive_feedback_sub_;
@@ -119,7 +119,7 @@ private:
     operation_mode_sub_;
 
   // services
-  rclcpp::Service<autoware_auto_vehicle_msgs::srv::ControlModeCommand>::SharedPtr control_mode_server_;
+  rclcpp::Service<autoware_vehicle_msgs::srv::ControlModeCommand>::SharedPtr control_mode_server_;
 
   // publishers
   rclcpp::Publisher<A2vBrakeCtrl>::SharedPtr a2v_brake_ctrl_pub_;
@@ -149,7 +149,7 @@ public:
    * @param msg input message
    */
   void callbackGearCommand(
-    const autoware_auto_vehicle_msgs::msg::GearCommand::ConstSharedPtr & msg);
+    const autoware_vehicle_msgs::msg::GearCommand::ConstSharedPtr & msg);
   /**
    * @brief callback function of v2a drive status feedback, in order to get the current gear of vehicle
    * 
@@ -171,8 +171,8 @@ public:
    * @param response 
    */
   void onControlModeRequest(
-    const autoware_auto_vehicle_msgs::srv::ControlModeCommand::Request::SharedPtr request,
-    const autoware_auto_vehicle_msgs::srv::ControlModeCommand::Response::SharedPtr response);
+    const autoware_vehicle_msgs::srv::ControlModeCommand::Request::SharedPtr request,
+    const autoware_vehicle_msgs::srv::ControlModeCommand::Response::SharedPtr response);
   /**
    * @brief timer callback function, to evaluate whether if msgs are timeout, than publish control msgs to pix driver control command node
    * 

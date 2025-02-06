@@ -49,7 +49,7 @@ ControlConverter::ControlConverter() : Node("control_converter")
     create_publisher<A2vVehicleCtrl>("/pix_hooke/a2v_vehiclectrl_133", rclcpp::QoS(1));
   
   //services
-  control_mode_server_ = create_service<autoware_auto_vehicle_msgs::srv::ControlModeCommand>(
+  control_mode_server_ = create_service<autoware_vehicle_msgs::srv::ControlModeCommand>(
     "/control/control_mode_request",
     std::bind(
       &ControlConverter::onControlModeRequest, this, std::placeholders::_1, std::placeholders::_2));
@@ -59,7 +59,7 @@ ControlConverter::ControlConverter() : Node("control_converter")
     create_subscription<tier4_vehicle_msgs::msg::ActuationCommandStamped>(
       "/control/command/actuation_cmd", 1,
       std::bind(&ControlConverter::callbackActuationCommand, this, std::placeholders::_1));
-  gear_command_sub_ = create_subscription<autoware_auto_vehicle_msgs::msg::GearCommand>(
+  gear_command_sub_ = create_subscription<autoware_vehicle_msgs::msg::GearCommand>(
     "/control/command/gear_cmd", 1,
     std::bind(&ControlConverter::callbackGearCommand, this, std::placeholders::_1));
   drive_feedback_sub_ = create_subscription<V2aDriveStaFb>(
@@ -82,7 +82,7 @@ void ControlConverter::callbackActuationCommand(
 }
 
 void ControlConverter::callbackGearCommand(
-  const autoware_auto_vehicle_msgs::msg::GearCommand::ConstSharedPtr & msg)
+  const autoware_vehicle_msgs::msg::GearCommand::ConstSharedPtr & msg)
 {
   gear_command_received_time_ = this->now();
   gear_command_ptr_ = msg;
@@ -100,16 +100,16 @@ void ControlConverter::callbackOperationMode(const autoware_adapi_v1_msgs::msg::
  }
 
 void ControlConverter::onControlModeRequest(
-  const autoware_auto_vehicle_msgs::srv::ControlModeCommand::Request::SharedPtr request,
-  const autoware_auto_vehicle_msgs::srv::ControlModeCommand::Response::SharedPtr response)
+  const autoware_vehicle_msgs::srv::ControlModeCommand::Request::SharedPtr request,
+  const autoware_vehicle_msgs::srv::ControlModeCommand::Response::SharedPtr response)
 {
-  if (request->mode == autoware_auto_vehicle_msgs::srv::ControlModeCommand::Request::AUTONOMOUS) {
+  if (request->mode == autoware_vehicle_msgs::srv::ControlModeCommand::Request::AUTONOMOUS) {
     engage_cmd_ = true;
     response->success = true;
     return;
   }
 
-  if (request->mode == autoware_auto_vehicle_msgs::srv::ControlModeCommand::Request::MANUAL) {
+  if (request->mode == autoware_vehicle_msgs::srv::ControlModeCommand::Request::MANUAL) {
     engage_cmd_ = false;
     response->success = true;
     return;
@@ -173,16 +173,16 @@ void ControlConverter::timerCallback()
   // gear
   a2v_drive_ctrl_msg.header.stamp = current_time;
   switch (gear_command_ptr_->command) {
-    case autoware_auto_vehicle_msgs::msg::GearCommand::NONE:
+    case autoware_vehicle_msgs::msg::GearCommand::NONE:
       a2v_drive_ctrl_msg.acu_chassis_gear_ctrl = static_cast<int8_t>(ACU_CHASSISGEARCTRL_DEFAULT_N);
       break;
-    case autoware_auto_vehicle_msgs::msg::GearCommand::DRIVE:
+    case autoware_vehicle_msgs::msg::GearCommand::DRIVE:
       a2v_drive_ctrl_msg.acu_chassis_gear_ctrl = static_cast<int8_t>(ACU_CHASSISGEARCTRL_D);
       break;
-    case autoware_auto_vehicle_msgs::msg::GearCommand::NEUTRAL:
+    case autoware_vehicle_msgs::msg::GearCommand::NEUTRAL:
       a2v_drive_ctrl_msg.acu_chassis_gear_ctrl = static_cast<int8_t>(ACU_CHASSISGEARCTRL_N);
       break;
-    case autoware_auto_vehicle_msgs::msg::GearCommand::REVERSE:
+    case autoware_vehicle_msgs::msg::GearCommand::REVERSE:
       a2v_drive_ctrl_msg.acu_chassis_gear_ctrl = static_cast<int8_t>(ACU_CHASSISGEARCTRL_R);
       break;
     default:

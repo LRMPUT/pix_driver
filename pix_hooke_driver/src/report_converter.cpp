@@ -54,18 +54,18 @@ ReportConverter::ReportConverter() : rclcpp::Node("report_converter")
     std::bind(&ReportConverter::vehicleWorkStaFbCallback, this, std::placeholders::_1));
 
   // initialize publishers
-  control_mode_pub_ = create_publisher<autoware_auto_vehicle_msgs::msg::ControlModeReport>(
+  control_mode_pub_ = create_publisher<autoware_vehicle_msgs::msg::ControlModeReport>(
     "/vehicle/status/control_mode", rclcpp::QoS{1});
-  vehicle_twist_pub_ = create_publisher<autoware_auto_vehicle_msgs::msg::VelocityReport>(
+  vehicle_twist_pub_ = create_publisher<autoware_vehicle_msgs::msg::VelocityReport>(
     "/vehicle/status/velocity_status", rclcpp::QoS{1});
-  steering_status_pub_ = create_publisher<autoware_auto_vehicle_msgs::msg::SteeringReport>(
+  steering_status_pub_ = create_publisher<autoware_vehicle_msgs::msg::SteeringReport>(
     "/vehicle/status/steering_status", rclcpp::QoS{1});
-  gear_status_pub_ = create_publisher<autoware_auto_vehicle_msgs::msg::GearReport>(
+  gear_status_pub_ = create_publisher<autoware_vehicle_msgs::msg::GearReport>(
     "/vehicle/status/gear_status", rclcpp::QoS{1});
   turn_indicators_status_pub_ =
-    create_publisher<autoware_auto_vehicle_msgs::msg::TurnIndicatorsReport>(
+    create_publisher<autoware_vehicle_msgs::msg::TurnIndicatorsReport>(
       "/vehicle/status/turn_indicators_status", rclcpp::QoS{1});
-  hazard_lights_status_pub_ = create_publisher<autoware_auto_vehicle_msgs::msg::HazardLightsReport>(
+  hazard_lights_status_pub_ = create_publisher<autoware_vehicle_msgs::msg::HazardLightsReport>(
     "/vehicle/status/hazard_lights_status", rclcpp::QoS{1});
   actuation_status_pub_ = create_publisher<tier4_vehicle_msgs::msg::ActuationStatusStamped>(
     "/vehicle/status/actuation_status", 1);
@@ -144,12 +144,12 @@ void ReportConverter::timerCallback()
   }
 
   // autoware msgs
-  autoware_auto_vehicle_msgs::msg::GearReport gear_msg;
-  autoware_auto_vehicle_msgs::msg::ControlModeReport control_mode_report_msg;
-  autoware_auto_vehicle_msgs::msg::HazardLightsReport hazard_lights_report_msg;
-  autoware_auto_vehicle_msgs::msg::SteeringReport steer_report_msg;
-  autoware_auto_vehicle_msgs::msg::VelocityReport velocity_report_msg;
-  autoware_auto_vehicle_msgs::msg::TurnIndicatorsReport turn_indicators_report_msg;
+  autoware_vehicle_msgs::msg::GearReport gear_msg;
+  autoware_vehicle_msgs::msg::ControlModeReport control_mode_report_msg;
+  autoware_vehicle_msgs::msg::HazardLightsReport hazard_lights_report_msg;
+  autoware_vehicle_msgs::msg::SteeringReport steer_report_msg;
+  autoware_vehicle_msgs::msg::VelocityReport velocity_report_msg;
+  autoware_vehicle_msgs::msg::TurnIndicatorsReport turn_indicators_report_msg;
   // tier4 msgs
   tier4_vehicle_msgs::msg::ActuationStatusStamped actuation_status_stamped_msg;
   tier4_vehicle_msgs::msg::SteeringWheelStatusStamped steering_wheel_status_msg;
@@ -159,19 +159,19 @@ void ReportConverter::timerCallback()
   gear_msg.stamp = current_time;
   switch (drive_sta_fb_ptr_->vcu_chassis_gear_fb) {
     case static_cast<int8_t>(VCU_CHASSISGEARFB_D):
-      gear_msg.report = autoware_auto_vehicle_msgs::msg::GearReport::DRIVE;
+      gear_msg.report = autoware_vehicle_msgs::msg::GearReport::DRIVE;
       break;
     case static_cast<int8_t>(VCU_CHASSISGEARFB_N):
-      gear_msg.report = autoware_auto_vehicle_msgs::msg::GearReport::NEUTRAL;
+      gear_msg.report = autoware_vehicle_msgs::msg::GearReport::NEUTRAL;
       break;
     case static_cast<int8_t>(VCU_CHASSISGEARFB_NO_USE):
-      gear_msg.report = autoware_auto_vehicle_msgs::msg::GearReport::NONE;
+      gear_msg.report = autoware_vehicle_msgs::msg::GearReport::NONE;
       break;
     case static_cast<int8_t>(VCU_CHASSISGEARFB_R):
-      gear_msg.report = autoware_auto_vehicle_msgs::msg::GearReport::REVERSE;
+      gear_msg.report = autoware_vehicle_msgs::msg::GearReport::REVERSE;
       break;
     default:
-      gear_msg.report = autoware_auto_vehicle_msgs::msg::GearReport::NONE;
+      gear_msg.report = autoware_vehicle_msgs::msg::GearReport::NONE;
       break;
   }
   gear_status_pub_->publish(gear_msg);
@@ -210,16 +210,16 @@ void ReportConverter::timerCallback()
   switch (vehicle_work_sta_fb_ptr_->vcu_driving_mode_fb)
   {
   case static_cast<int8_t>(VCU_DRIVINGMODEFB_SELF_DRIVING):
-    control_mode_report_msg.mode = autoware_auto_vehicle_msgs::msg::ControlModeReport::AUTONOMOUS;
+    control_mode_report_msg.mode = autoware_vehicle_msgs::msg::ControlModeReport::AUTONOMOUS;
     break;
   case static_cast<int8_t>(VCU_DRIVINGMODEFB_STANDBY):
-    control_mode_report_msg.mode = autoware_auto_vehicle_msgs::msg::ControlModeReport::DISENGAGED;
+    control_mode_report_msg.mode = autoware_vehicle_msgs::msg::ControlModeReport::DISENGAGED;
     break;
   case static_cast<int8_t>(VCU_DRIVINGMODEFB_REMOTE):
-    control_mode_report_msg.mode = autoware_auto_vehicle_msgs::msg::ControlModeReport::MANUAL;
+    control_mode_report_msg.mode = autoware_vehicle_msgs::msg::ControlModeReport::MANUAL;
     break;
   default:
-    control_mode_report_msg.mode = autoware_auto_vehicle_msgs::msg::ControlModeReport::NOT_READY;
+    control_mode_report_msg.mode = autoware_vehicle_msgs::msg::ControlModeReport::NOT_READY;
     break;
   }
   control_mode_pub_->publish(control_mode_report_msg);
@@ -228,9 +228,9 @@ void ReportConverter::timerCallback()
   hazard_lights_report_msg.stamp = current_time;
   if(vehicle_sta_fb_ptr_->vcu_vehicle_hazard_war_lamp_fb ==VCU_VEHICLEHAZARDWARLAMPFB_ON)
   {
-    hazard_lights_report_msg.report = autoware_auto_vehicle_msgs::msg::HazardLightsReport::ENABLE;
+    hazard_lights_report_msg.report = autoware_vehicle_msgs::msg::HazardLightsReport::ENABLE;
   }else{
-    hazard_lights_report_msg.report = autoware_auto_vehicle_msgs::msg::HazardLightsReport::DISABLE;
+    hazard_lights_report_msg.report = autoware_vehicle_msgs::msg::HazardLightsReport::DISABLE;
   }
 
   // turn indicators, pix chassi feedbacks LEFT light and RIGHT light separately, if the hazard light blink, it will output ENABLE_LEFT as default
@@ -238,13 +238,13 @@ void ReportConverter::timerCallback()
   if(vehicle_sta_fb_ptr_->vcu_vehicle_left_lamp_fb==VCU_VEHICLELEFTLAMPFB_OFF && vehicle_sta_fb_ptr_->vcu_vehicle_right_lamp_fb==VCU_VEHICLERIGHTLAMPFB_OFF)
   {
     turn_indicators_report_msg.report =
-      autoware_auto_vehicle_msgs::msg::TurnIndicatorsReport::DISABLE;
+      autoware_vehicle_msgs::msg::TurnIndicatorsReport::DISABLE;
   } else if (vehicle_sta_fb_ptr_->vcu_vehicle_right_lamp_fb == VCU_VEHICLERIGHTLAMPFB_ON) {
     turn_indicators_report_msg.report =
-      autoware_auto_vehicle_msgs::msg::TurnIndicatorsReport::ENABLE_RIGHT;
+      autoware_vehicle_msgs::msg::TurnIndicatorsReport::ENABLE_RIGHT;
   } else if(vehicle_sta_fb_ptr_->vcu_vehicle_left_lamp_fb==VCU_VEHICLELEFTLAMPFB_ON) {
     turn_indicators_report_msg.report =
-      autoware_auto_vehicle_msgs::msg::TurnIndicatorsReport::ENABLE_LEFT;
+      autoware_vehicle_msgs::msg::TurnIndicatorsReport::ENABLE_LEFT;
   }
   turn_indicators_status_pub_->publish(turn_indicators_report_msg);
 
