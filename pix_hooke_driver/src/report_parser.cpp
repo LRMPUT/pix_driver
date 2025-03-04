@@ -38,7 +38,17 @@ ReportParser::ReportParser(): Node("report_parser")
   vehicle_flt_sta_received_time_ = this->now();
   vehicle_sta_fb_received_time_ = this->now();
   vehicle_work_sta_fb_received_time_ = this->now();
-
+  // initialize msg ptr
+  brake_sta_fb_ptr_ = std::make_shared<V2aBrakeStaFb>();
+  chassis_wheel_angle_fb_ptr_ = std::make_shared<V2aChassisWheelAngleFb>();
+  chassis_wheel_rpm_fb_ptr_ = std::make_shared<V2aChassisWheelRpmFb>();
+  chassis_wheel_tire_press_fb_ptr_ = std::make_shared<V2aChassisWheelTirePressFb>();
+  drive_sta_fb_ptr_ = std::make_shared<V2aDriveStaFb>();
+  power_sta_fb_ptr_ = std::make_shared<V2aPowerStaFb>();
+  steer_sta_fb_ptr_ = std::make_shared<V2aSteerStaFb>();
+  vehicle_flt_sta_ptr_ = std::make_shared<V2aVehicleFltSta>();
+  vehicle_sta_fb_ptr_ = std::make_shared<V2aVehicleStaFb>();
+  vehicle_work_sta_fb_ptr_ = std::make_shared<V2aVehicleWorkStaFb>();
   is_publish_ = true;
 
   using std::placeholders::_1;
@@ -334,7 +344,15 @@ void ReportParser::timerCallback()
       get_logger(), *this->get_clock(), std::chrono::milliseconds(5000).count(),
       "drive stat fb report timeout = %f ms.", drive_sta_fb_report_delta_time_ms);
   }else{
-    drive_sta_fb_pub_->publish(*drive_sta_fb_ptr_);
+    if(drive_sta_fb_ptr_!=nullptr)
+    {
+      drive_sta_fb_pub_->publish(*drive_sta_fb_ptr_);
+    }
+    else{
+      RCLCPP_ERROR_THROTTLE(
+        get_logger(), *this->get_clock(), std::chrono::milliseconds(5000).count(),
+        "drive stat fb ptr is nullptr.");
+    }
   }
   // brake sta fb report
   const double brake_sta_fb_report_delta_time_ms =
