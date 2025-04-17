@@ -54,10 +54,10 @@ ControlCommand::ControlCommand() : Node("control_command")
       "/pix_hooke/a2v_drivectrl_130", 1, std::bind(&ControlCommand::callbackDriveCtrl, this, _1));
     a2v_steer_ctrl_sub_ = create_subscription<A2vSteerCtrl>(
       "/pix_hooke/a2v_steerctrl_132", 1, std::bind(&ControlCommand::callbackSteerCtrl, this, _1));
-    a2v_wheel_ctrl_sub_ = create_subscription<A2vWheelCtrl>(
-      "/pix_hooke/a2v_wheelctrl_135", 1, std::bind(&ControlCommand::callbackWheelCtrl, this, _1));
-    a2v_vehicle_ctrl_sub_ = create_subscription<A2vVehicleCtrl>(
-      "/pix_hooke/a2v_vehiclectrl_133", 1, std::bind(&ControlCommand::callbackVehicleCtrl, this, _1));
+    // a2v_wheel_ctrl_sub_ = create_subscription<A2vWheelCtrl>(
+    //   "/pix_hooke/a2v_wheelctrl_135", 1, std::bind(&ControlCommand::callbackWheelCtrl, this, _1));
+    // a2v_vehicle_ctrl_sub_ = create_subscription<A2vVehicleCtrl>(
+    //   "/pix_hooke/a2v_vehiclectrl_133", 1, std::bind(&ControlCommand::callbackVehicleCtrl, this, _1));
     // engage
     engage_ctrl_sub_ = create_subscription<std_msgs::msg::Bool>(
       "input/engage", 1, std::bind(&ControlCommand::callbackEngage, this, _1));
@@ -146,55 +146,55 @@ void ControlCommand::callbackSteerCtrl(const A2vSteerCtrl::ConstSharedPtr & msg)
   steer_ctrl_can_ptr_ = std::make_shared<can_msgs::msg::Frame>(steer_ctrl_can_msg);
 }
 
-void ControlCommand::callbackWheelCtrl(const A2vWheelCtrl::ConstSharedPtr & msg)
-{
-  wheel_command_received_time_ = this->now();
-  wheel_ctrl_ptr_ = msg;
-  a2v_wheelctrl_135_entity_.Reset();
-  a2v_wheelctrl_135_entity_.UpdateData(
-    msg->acu_motor_torque_lf_crtl, msg->acu_motor_torque_rf_crtl, msg->acu_motor_torque_lr_crtl,
-    msg->acu_motor_torque_rr_crtl);
-  can_msgs::msg::Frame wheel_ctrl_can_msg;
-  wheel_ctrl_can_msg.header.stamp = msg->header.stamp;
-  wheel_ctrl_can_msg.dlc = 8;
-  wheel_ctrl_can_msg.id = a2v_wheelctrl_135_entity_.ID;
-  wheel_ctrl_can_msg.is_extended = false;
-  uint8_t *signal_bits;
-  signal_bits = a2v_wheelctrl_135_entity_.get_data();
-  for (int i = 0; i < 8; i++)
-  {
-    wheel_ctrl_can_msg.data[i] = *signal_bits;
-    signal_bits += 1;
-  }
-  wheel_ctrl_can_ptr_ = std::make_shared<can_msgs::msg::Frame>(wheel_ctrl_can_msg);
-}
-void ControlCommand::callbackVehicleCtrl(const A2vVehicleCtrl::ConstSharedPtr & msg)
-{
+// void ControlCommand::callbackWheelCtrl(const A2vWheelCtrl::ConstSharedPtr & msg)
+// {
+//   wheel_command_received_time_ = this->now();
+//   wheel_ctrl_ptr_ = msg;
+//   a2v_wheelctrl_135_entity_.Reset();
+//   a2v_wheelctrl_135_entity_.UpdateData(
+//     msg->acu_motor_torque_lf_crtl, msg->acu_motor_torque_rf_crtl, msg->acu_motor_torque_lr_crtl,
+//     msg->acu_motor_torque_rr_crtl);
+//   can_msgs::msg::Frame wheel_ctrl_can_msg;
+//   wheel_ctrl_can_msg.header.stamp = msg->header.stamp;
+//   wheel_ctrl_can_msg.dlc = 8;
+//   wheel_ctrl_can_msg.id = a2v_wheelctrl_135_entity_.ID;
+//   wheel_ctrl_can_msg.is_extended = false;
+//   uint8_t *signal_bits;
+//   signal_bits = a2v_wheelctrl_135_entity_.get_data();
+//   for (int i = 0; i < 8; i++)
+//   {
+//     wheel_ctrl_can_msg.data[i] = *signal_bits;
+//     signal_bits += 1;
+//   }
+//   wheel_ctrl_can_ptr_ = std::make_shared<can_msgs::msg::Frame>(wheel_ctrl_can_msg);
+// }
+// void ControlCommand::callbackVehicleCtrl(const A2vVehicleCtrl::ConstSharedPtr & msg)
+// {
 
-  vehicle_command_received_time_ = this->now();
-  vehicle_ctrl_ptr_ = msg;
-  a2v_vehiclectrl_133_entity_.Reset();
-  a2v_vehiclectrl_133_entity_.UpdateData(
-    msg->acu_vehicle_pos_lamp_ctrl, msg->acu_vehicle_head_lamp_ctrl,
-    msg->acu_vehicle_left_lamp_ctrl, msg->acu_vehicle_right_lamp_ctrl,
-    msg->acu_vehicl_high_beam_ctrl, msg->acu_vehicle_fog_lamp_ctrl,
-    msg->acu_vehicle_body_light_crtl, msg->acu_vehicle_read_light_crtl, msg->acu_vehicle_voice,
-    msg->acu_vehicle_wipers_crtl, msg->acu_vehicle_door_crtl, msg->acu_vehicle_window_crtl,
-    msg->acu_chassis_speed_limite_mode, msg->acu_chassis_speed_limite_val, msg->acu_check_sum_en);
-  can_msgs::msg::Frame vehicle_ctrl_can_msg;
-  vehicle_ctrl_can_msg.header.stamp = msg->header.stamp;
-  vehicle_ctrl_can_msg.dlc = 8;
-  vehicle_ctrl_can_msg.id = a2v_vehiclectrl_133_entity_.ID;
-  vehicle_ctrl_can_msg.is_extended = false;
-  uint8_t *signal_bits;
-  signal_bits = a2v_wheelctrl_135_entity_.get_data();
-  for (int i = 0; i < 8; i++)
-  {
-    vehicle_ctrl_can_msg.data[i] = *signal_bits;
-    signal_bits += 1;
-  }
-  vehicle_ctrl_can_ptr_ = std::make_shared<can_msgs::msg::Frame>(vehicle_ctrl_can_msg);
-}
+//   vehicle_command_received_time_ = this->now();
+//   vehicle_ctrl_ptr_ = msg;
+//   a2v_vehiclectrl_133_entity_.Reset();
+//   a2v_vehiclectrl_133_entity_.UpdateData(
+//     msg->acu_vehicle_pos_lamp_ctrl, msg->acu_vehicle_head_lamp_ctrl,
+//     msg->acu_vehicle_left_lamp_ctrl, msg->acu_vehicle_right_lamp_ctrl,
+//     msg->acu_vehicl_high_beam_ctrl, msg->acu_vehicle_fog_lamp_ctrl,
+//     msg->acu_vehicle_body_light_crtl, msg->acu_vehicle_read_light_crtl, msg->acu_vehicle_voice,
+//     msg->acu_vehicle_wipers_crtl, msg->acu_vehicle_door_crtl, msg->acu_vehicle_window_crtl,
+//     msg->acu_chassis_speed_limite_mode, msg->acu_chassis_speed_limite_val, msg->acu_check_sum_en);
+//   can_msgs::msg::Frame vehicle_ctrl_can_msg;
+//   vehicle_ctrl_can_msg.header.stamp = msg->header.stamp;
+//   vehicle_ctrl_can_msg.dlc = 8;
+//   vehicle_ctrl_can_msg.id = a2v_vehiclectrl_133_entity_.ID;
+//   vehicle_ctrl_can_msg.is_extended = false;
+//   uint8_t *signal_bits;
+//   signal_bits = a2v_wheelctrl_135_entity_.get_data();
+//   for (int i = 0; i < 8; i++)
+//   {
+//     vehicle_ctrl_can_msg.data[i] = *signal_bits;
+//     signal_bits += 1;
+//   }
+//   vehicle_ctrl_can_ptr_ = std::make_shared<can_msgs::msg::Frame>(vehicle_ctrl_can_msg);
+// }
 
 void ControlCommand::callbackEngage(const std_msgs::msg::Bool::ConstSharedPtr & msg)
 {
@@ -237,25 +237,25 @@ void ControlCommand::timerCallback()
     can_frame_pub_->publish(*steer_ctrl_can_ptr_);
   }
   // wheel control command
-  const double wheel_command_delta_time_ms =
-    (current_time - wheel_command_received_time_).seconds() * 1000.0;
-  if(wheel_command_delta_time_ms > param_.command_timeout_ms || wheel_ctrl_can_ptr_==nullptr) {
-    RCLCPP_ERROR_THROTTLE(
-      get_logger(), *this->get_clock(), std::chrono::milliseconds(5000).count(),
-      "wheel command timeout = %f ms.", wheel_command_delta_time_ms);
-  } else {
-    can_frame_pub_->publish(*wheel_ctrl_can_ptr_);
-  }
+  // const double wheel_command_delta_time_ms =
+  //   (current_time - wheel_command_received_time_).seconds() * 1000.0;
+  // if(wheel_command_delta_time_ms > param_.command_timeout_ms || wheel_ctrl_can_ptr_==nullptr) {
+  //   RCLCPP_ERROR_THROTTLE(
+  //     get_logger(), *this->get_clock(), std::chrono::milliseconds(5000).count(),
+  //     "wheel command timeout = %f ms.", wheel_command_delta_time_ms);
+  // } else {
+  //   can_frame_pub_->publish(*wheel_ctrl_can_ptr_);
+  // }
   // vehicle control command
-  const double vehicle_command_delta_time_ms =
-    (current_time - vehicle_command_received_time_).seconds() * 1000.0;
-  if(vehicle_command_delta_time_ms > param_.command_timeout_ms || vehicle_ctrl_can_ptr_==nullptr) {
-    RCLCPP_ERROR_THROTTLE(
-      get_logger(), *this->get_clock(), std::chrono::milliseconds(5000).count(),
-      "vehicle command timeout = %f ms.", vehicle_command_delta_time_ms);
-  } else {
-    can_frame_pub_->publish(*vehicle_ctrl_can_ptr_);
-  }
+  // const double vehicle_command_delta_time_ms =
+  //   (current_time - vehicle_command_received_time_).seconds() * 1000.0;
+  // if(vehicle_command_delta_time_ms > param_.command_timeout_ms || vehicle_ctrl_can_ptr_==nullptr) {
+  //   RCLCPP_ERROR_THROTTLE(
+  //     get_logger(), *this->get_clock(), std::chrono::milliseconds(5000).count(),
+  //     "vehicle command timeout = %f ms.", vehicle_command_delta_time_ms);
+  // } else {
+  //   can_frame_pub_->publish(*vehicle_ctrl_can_ptr_);
+  // }
 }
 } // namespace control_command
 } // namespace pix_hooke_driver
