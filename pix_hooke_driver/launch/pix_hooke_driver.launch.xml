@@ -2,7 +2,7 @@
 <launch>
   <arg name="base_frame_id" default="base_link" />
   <arg name="command_timeout_ms" default="1000" />
-  <arg name="report_timeout_ms" default="1000" />
+  <arg name="report_timeout_ms" default="5000" />
   <arg name="loop_rate" default="50.0" />
 
   <node pkg="pix_hooke_driver" name="pix_hooke_driver_command_node" exec="pix_hooke_driver_control_command_node" output="screen">
@@ -18,5 +18,4 @@
     <param name="loop_rate" value="$(var loop_rate)"/>
     <remap from="input/can_rx" to="/from_can_bus" />
   </node>
-
 </launch>
