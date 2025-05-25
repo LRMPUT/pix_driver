@@ -22,6 +22,7 @@ set(msg_files
 	"msg/V2aChassisWheelTirePressFb.msg"
 	"msg/V2aSteerStaFb.msg"
 	"msg/V2aVehicleWorkStaFb.msg"
+	"srv/SteerMode.srv"
 )
 
 set(msg_dependencies
