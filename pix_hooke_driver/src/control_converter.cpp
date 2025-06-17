@@ -240,10 +240,6 @@ void ControlConverter::timerCallback()
     // speed control mode
     a2v_drive_ctrl_msg.acu_chassis_driver_mode_ctrl = static_cast<int8_t>(ACU_CHASSISDRIVERMODECTRL_SPEED_CTRL_MODE);
     a2v_drive_ctrl_msg.acu_chassis_throttle_pdl_target = 0.0;
-    float velocity_target = control_command_ptr_->longitudinal.velocity;
-    if (a2v_drive_ctrl_msg.acu_chassis_gear_ctrl == static_cast<int8_t>(ACU_CHASSISGEARCTRL_R)) {
-      velocity_target *= -1.0;
-    } 
     // set the speed control target
     
     a2v_drive_ctrl_msg.acu_chassis_speed_ctrl = control_command_ptr_->longitudinal.velocity * 0.1;
