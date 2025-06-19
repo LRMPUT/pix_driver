@@ -16,6 +16,7 @@
 #include <string>
 
 #include <pix_hooke_driver/control_converter.hpp>
+constexpr double Ms2S = 1000.0;
 
 namespace pix_hooke_driver
 {
@@ -24,6 +25,7 @@ namespace control_converter
 ControlConverter::ControlConverter() : Node("control_converter")
 {
   // ros params
+  param_.speed_control_mode = declare_parameter("speed_control_mode", false);
   param_.autoware_control_command_timeout =
     declare_parameter("autoware_control_command_timeout", 100);
   param_.loop_rate = declare_parameter("loop_rate", 50.0);
@@ -32,7 +34,7 @@ ControlConverter::ControlConverter() : Node("control_converter")
 
   // initialization engage
   engage_cmd_ = false;
-
+  steer_mode_ = static_cast<int8_t>(ACU_CHASSISSTEERMODECTRL_FRONT_DIFFERENT_BACK);
   // initialize msgs and timestamps
   drive_sta_fb_received_time_ = this->now();
   actuation_command_received_time_ = this->now();
@@ -53,12 +55,22 @@ ControlConverter::ControlConverter() : Node("control_converter")
     "/control/control_mode_request",
     std::bind(
       &ControlConverter::onControlModeRequest, this, std::placeholders::_1, std::placeholders::_2));
-
+  steer_mode_server_ = create_service<pix_hooke_driver_msgs::srv::SteerMode>(
+    "/control/steer_mode_request",
+    std::bind(
+      &ControlConverter::onSteerModeRequest, this, std::placeholders::_1, std::placeholders::_2));
   // subscribers
-  actuation_command_sub_ =
-    create_subscription<tier4_vehicle_msgs::msg::ActuationCommandStamped>(
-      "/control/command/actuation_cmd", 1,
-      std::bind(&ControlConverter::callbackActuationCommand, this, std::placeholders::_1));
+  if (param_.speed_control_mode) {
+    control_command_sub_ =
+      create_subscription<autoware_control_msgs::msg::Control>(
+        "/control/command/control_cmd", 1,
+        std::bind(&ControlConverter::callbackControlCommand, this, std::placeholders::_1));
+  } else{
+    actuation_command_sub_ =
+      create_subscription<tier4_vehicle_msgs::msg::ActuationCommandStamped>(
+        "/control/command/actuation_cmd", 1,
+        std::bind(&ControlConverter::callbackActuationCommand, this, std::placeholders::_1));
+  }
   gear_command_sub_ = create_subscription<autoware_vehicle_msgs::msg::GearCommand>(
     "/control/command/gear_cmd", 1,
     std::bind(&ControlConverter::callbackGearCommand, this, std::placeholders::_1));
@@ -79,6 +91,13 @@ void ControlConverter::callbackActuationCommand(
 {
   actuation_command_received_time_ = this->now();
   actuation_command_ptr_ = msg;
+}
+
+void ControlConverter::callbackControlCommand(
+  const autoware_control_msgs::msg::Control::ConstSharedPtr & msg)
+{
+  actuation_command_received_time_ = this->now();
+  control_command_ptr_ = msg;
 }
 
 void ControlConverter::callbackGearCommand(
@@ -120,6 +139,23 @@ void ControlConverter::onControlModeRequest(
   return;
 }
 
+void ControlConverter::onSteerModeRequest(
+  const pix_hooke_driver_msgs::srv::SteerMode::Request::SharedPtr request,
+  const pix_hooke_driver_msgs::srv::SteerMode::Response::SharedPtr response)
+{
+  steer_mode_ = request->mode;
+  if(steer_mode_ > static_cast<int8_t>(ACU_CHASSISSTEERMODECTRL_FRONT_BACK) || 
+     steer_mode_ < static_cast<int8_t>(ACU_CHASSISSTEERMODECTRL_FRONT_ACKERMAN))
+  {
+    RCLCPP_ERROR(get_logger(), "unsupported steer_mode!!");
+    response->success = false;
+    return;
+  }
+  RCLCPP_INFO(get_logger(), "Changed steer mode");
+  response->success = true;
+  return;
+}
+
 void ControlConverter::timerCallback()
 {
   const rclcpp::Time current_time = this->now();
@@ -132,14 +168,20 @@ void ControlConverter::timerCallback()
 
   if(actuation_command_delta_time_ms > param_.autoware_control_command_timeout
       || gear_command_delta_time_ms > param_.autoware_control_command_timeout
-      || actuation_command_ptr_==nullptr
       || gear_command_ptr_==nullptr
       || operation_mode_ptr_==nullptr)
   {
     RCLCPP_ERROR_THROTTLE(
       get_logger(), *this->get_clock(), std::chrono::milliseconds(5000).count(),
-      "actuation command timeout = %f ms, gear command timeout = %f",
+      "control or actuation command timeout = %f msReceived, gear command timeout = %f",
       actuation_command_delta_time_ms, gear_command_delta_time_ms);
+    return;
+  }
+  if(actuation_command_ptr_ == nullptr && control_command_ptr_ == nullptr)
+  {
+    RCLCPP_ERROR_THROTTLE(
+      get_logger(), *this->get_clock(), std::chrono::milliseconds(5000).count(),
+      "control command and actuation command are both nullptr.");
     return;
   }
   if(drive_sta_fb_delta_time_ms > param_.autoware_control_command_timeout || drive_sta_fb_ptr_ == nullptr)
@@ -158,17 +200,13 @@ void ControlConverter::timerCallback()
 
   // brake
   a2v_brake_ctrl_msg.header.stamp = current_time;
-  a2v_brake_ctrl_msg.acu_chassis_brake_pdl_target = actuation_command_ptr_->actuation.brake_cmd * 100.0;
   a2v_brake_ctrl_msg.acu_chassis_brake_en = 1;
 
   // steer
   a2v_steer_ctrl_msg.header.stamp = current_time;
   a2v_steer_ctrl_msg.acu_chassis_steer_angle_speed_ctrl = 250;
-  a2v_steer_ctrl_msg.acu_chassis_steer_angle_target =
-    -actuation_command_ptr_->actuation.steer_cmd * param_.steering_factor;
   a2v_steer_ctrl_msg.acu_chassis_steer_en_ctrl = 1;
-  a2v_steer_ctrl_msg.acu_chassis_steer_mode_ctrl =
-    static_cast<int8_t>(ACU_CHASSISSTEERMODECTRL_FRONT_DIFFERENT_BACK);
+  a2v_steer_ctrl_msg.acu_chassis_steer_mode_ctrl = steer_mode_;
 
   // gear
   a2v_drive_ctrl_msg.header.stamp = current_time;
@@ -197,18 +235,50 @@ void ControlConverter::timerCallback()
   // }else{
   //   a2v_drive_ctrl_msg.acu_chassis_driver_en_ctrl = ACU_CHASSISDRIVERENCTRL_DISABLE;
   // }
-  a2v_drive_ctrl_msg.acu_chassis_driver_en_ctrl = 1;
-  a2v_drive_ctrl_msg.acu_chassis_driver_mode_ctrl = ACU_CHASSISDRIVERMODECTRL_THROTTLE_CTRL_MODE;
-  a2v_drive_ctrl_msg.acu_chassis_throttle_pdl_target = actuation_command_ptr_->actuation.accel_cmd * 100.0;
+  a2v_drive_ctrl_msg.acu_chassis_driver_en_ctrl = static_cast<int8_t>(ACU_CHASSISDRIVERENCTRL_ENABLE);
+  if (param_.speed_control_mode) {
+    // speed control mode
+    a2v_drive_ctrl_msg.acu_chassis_driver_mode_ctrl = static_cast<int8_t>(ACU_CHASSISDRIVERMODECTRL_SPEED_CTRL_MODE);
+    a2v_drive_ctrl_msg.acu_chassis_throttle_pdl_target = 0.0;
+    float velocity_target = control_command_ptr_->longitudinal.velocity;
+    if (a2v_drive_ctrl_msg.acu_chassis_gear_ctrl == static_cast<int8_t>(ACU_CHASSISGEARCTRL_R)) {
+      velocity_target *= -1.0; // reverse gear, velocity should be positive
+    }
+    // set the speed control target
+    a2v_drive_ctrl_msg.acu_chassis_speed_ctrl = velocity_target;
+    // set steering angle
+    a2v_steer_ctrl_msg.acu_chassis_steer_angle_target =
+      -control_command_ptr_->lateral.steering_tire_angle * param_.steering_factor;
+    // set brake pedal target
+    // if control_command_ptr_->longitudinal.acceleration is negative
+    if (control_command_ptr_->longitudinal.acceleration < 0.0) {
+      // brake control mode
+      a2v_brake_ctrl_msg.acu_chassis_brake_en = 1;
+      a2v_brake_ctrl_msg.acu_chassis_brake_pdl_target =
+        control_command_ptr_->longitudinal.acceleration * 100.0 * -0.287;
+    }
+  } else {
+    // throttle control mode
+    a2v_drive_ctrl_msg.acu_chassis_driver_mode_ctrl = static_cast<int8_t>(ACU_CHASSISDRIVERMODECTRL_THROTTLE_CTRL_MODE);
+    // set the speed control target
+    a2v_drive_ctrl_msg.acu_chassis_throttle_pdl_target = actuation_command_ptr_->actuation.accel_cmd * 100.0;
+    a2v_drive_ctrl_msg.acu_chassis_speed_ctrl = 0.0;
+    // set steering angle
+    a2v_steer_ctrl_msg.acu_chassis_steer_angle_target =
+      -actuation_command_ptr_->actuation.steer_cmd * param_.steering_factor;
+    // set brake pedal target
+    a2v_brake_ctrl_msg.acu_chassis_brake_pdl_target = actuation_command_ptr_->actuation.brake_cmd * 100.0;
+  }
 
   // keep shifting and braking when target gear is different from actual gear
   if (drive_sta_fb_ptr_->vcu_chassis_gear_fb != a2v_drive_ctrl_msg.acu_chassis_gear_ctrl) {
     a2v_brake_ctrl_msg.acu_chassis_brake_pdl_target = 20.0;
     a2v_drive_ctrl_msg.acu_chassis_throttle_pdl_target = 0.0;
+    a2v_drive_ctrl_msg.acu_chassis_speed_ctrl = 0.0;
   }
 
   // check the opeartion mode, if the operation mode is STOP, it should triger the parking brake
-  if(operation_mode_ptr_->mode == operation_mode_ptr_->STOP){
+  if (operation_mode_ptr_->mode == autoware_adapi_v1_msgs::msg::OperationModeState::STOP){
     a2v_brake_ctrl_msg.acu_chassis_epb_ctrl = true;
   }else{
     a2v_brake_ctrl_msg.acu_chassis_epb_ctrl = false;

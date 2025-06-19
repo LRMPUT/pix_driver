@@ -20,6 +20,7 @@
 //ros
 #include <rclcpp/rclcpp.hpp>
 // autoware
+#include <autoware_control_msgs/msg/control.hpp>
 #include <autoware_vehicle_msgs/msg/gear_command.hpp>
 #include <autoware_vehicle_msgs/srv/control_mode_command.hpp>
 #include <tier4_vehicle_msgs/msg/actuation_command_stamped.hpp>
@@ -30,6 +31,7 @@
 #include <pix_hooke_driver_msgs/msg/a2v_steer_ctrl.hpp>
 #include <pix_hooke_driver_msgs/msg/a2v_vehicle_ctrl.hpp>
 #include <pix_hooke_driver_msgs/msg/a2v_wheel_ctrl.hpp>
+#include <pix_hooke_driver_msgs/srv/steer_mode.hpp>
 // pix report
 #include <pix_hooke_driver_msgs/msg/v2a_drive_sta_fb.hpp>
 
@@ -83,6 +85,7 @@ struct Param
   double max_steering_angle;            // radians
   double steering_factor;               //
   int autoware_control_command_timeout; // ms
+  bool speed_control_mode; // true: speed control mode, false: throttle control mode
 };
 
 class ControlConverter : public rclcpp::Node
@@ -91,11 +94,12 @@ private:
   // parameters
   Param param_;
   bool engage_cmd_;
-
+  int8_t steer_mode_;
   // shared msgs
   V2aDriveStaFb::ConstSharedPtr drive_sta_fb_ptr_;
   autoware_vehicle_msgs::msg::GearCommand::ConstSharedPtr gear_command_ptr_;
   tier4_vehicle_msgs::msg::ActuationCommandStamped::ConstSharedPtr actuation_command_ptr_;
+  autoware_control_msgs::msg::Control::ConstSharedPtr control_command_ptr_;
   autoware_adapi_v1_msgs::msg::OperationModeState::ConstSharedPtr operation_mode_ptr_;
 
   // timestamps
@@ -104,6 +108,7 @@ private:
   rclcpp::Time actuation_command_received_time_;
 
   // subscribers
+  rclcpp::Subscription<autoware_control_msgs::msg::Control>::ConstSharedPtr control_command_sub_;
   rclcpp::Subscription<tier4_vehicle_msgs::msg::ActuationCommandStamped>::ConstSharedPtr
     actuation_command_sub_;
   rclcpp::Subscription<autoware_vehicle_msgs::msg::GearCommand>::ConstSharedPtr
@@ -120,7 +125,7 @@ private:
 
   // services
   rclcpp::Service<autoware_vehicle_msgs::srv::ControlModeCommand>::SharedPtr control_mode_server_;
-
+  rclcpp::Service<pix_hooke_driver_msgs::srv::SteerMode>::SharedPtr steer_mode_server_;
   // publishers
   rclcpp::Publisher<A2vBrakeCtrl>::SharedPtr a2v_brake_ctrl_pub_;
   rclcpp::Publisher<A2vDriveCtrl>::SharedPtr a2v_drive_ctrl_pub_;
@@ -136,6 +141,13 @@ public:
    * 
    */
   ControlConverter();
+  /**
+    * @brief callback function of control command
+    *
+    * @param msg input message
+   */
+  void callbackControlCommand(
+    const autoware_control_msgs::msg::Control::ConstSharedPtr & msg);
   /**
    * @brief callback function of actuation command, in order to get accel pedal, brake pedal, steer command
    * 
@@ -173,6 +185,9 @@ public:
   void onControlModeRequest(
     const autoware_vehicle_msgs::srv::ControlModeCommand::Request::SharedPtr request,
     const autoware_vehicle_msgs::srv::ControlModeCommand::Response::SharedPtr response);
+  void onSteerModeRequest(
+    const pix_hooke_driver_msgs::srv::SteerMode::Request::SharedPtr request,
+    const pix_hooke_driver_msgs::srv::SteerMode::Response::SharedPtr response);
   /**
    * @brief timer callback function, to evaluate whether if msgs are timeout, than publish control msgs to pix driver control command node
    * 
