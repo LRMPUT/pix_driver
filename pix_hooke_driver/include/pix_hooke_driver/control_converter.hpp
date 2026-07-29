@@ -107,6 +107,10 @@ private:
   rclcpp::Time gear_command_received_time_;
   rclcpp::Time actuation_command_received_time_;
 
+  // EPB dwell/debounce state
+  bool was_stop_{false};
+  rclcpp::Time stop_mode_since_{0, 0, RCL_ROS_TIME};
+
   // subscribers
   rclcpp::Subscription<autoware_control_msgs::msg::Control>::ConstSharedPtr control_command_sub_;
   rclcpp::Subscription<tier4_vehicle_msgs::msg::ActuationCommandStamped>::ConstSharedPtr
