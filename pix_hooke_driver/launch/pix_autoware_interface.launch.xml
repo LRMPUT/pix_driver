@@ -18,6 +18,7 @@
   </node>
   <node pkg="pix_hooke_driver" name="pix_hooke_driver_control_converter_node" exec="pix_hooke_driver_control_converter_node" output="screen">
     <param name="autoware_control_command_timeout" value="$(var autoware_control_command_timeout)"/>
+    <param name="speed_control_mode" value="true"/>
     <param name="loop_rate" value="$(var loop_rate)"/>
     <param name="max_steering_angle" value="$(var max_steering_angle)"/>
     <param name="speed_control_mode" value="$(var speed_control_mode)"/>

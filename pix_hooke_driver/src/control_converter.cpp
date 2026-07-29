@@ -278,11 +278,22 @@ void ControlConverter::timerCallback()
   }
 
   // check the opeartion mode, if the operation mode is STOP, it should triger the parking brake
-  if (operation_mode_ptr_->mode == autoware_adapi_v1_msgs::msg::OperationModeState::STOP){
-    a2v_brake_ctrl_msg.acu_chassis_epb_ctrl = true;
-  }else{
-    a2v_brake_ctrl_msg.acu_chassis_epb_ctrl = false;
+  const bool is_stop_mode =
+    operation_mode_ptr_->mode == autoware_adapi_v1_msgs::msg::OperationModeState::STOP;
+
+  if (is_stop_mode && !was_stop_) {
+    stop_mode_since_ = current_time;      // just entered STOP, start the clock
+  } else if (!is_stop_mode) {
+    stop_mode_since_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
   }
+  was_stop_ = is_stop_mode;
+
+  constexpr double kParkDwellSeconds = 5.5;  // tune based on measured re-engage latency
+  const bool dwell_elapsed =
+    is_stop_mode && (current_time - stop_mode_since_).seconds() > kParkDwellSeconds;
+
+  a2v_brake_ctrl_msg.acu_chassis_epb_ctrl = dwell_elapsed;
+
   // publishing msgs
   a2v_brake_ctrl_pub_->publish(a2v_brake_ctrl_msg);
   a2v_drive_ctrl_pub_->publish(a2v_drive_ctrl_msg);
